@@ -10,9 +10,19 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
-  productionBrowserSourceMaps: true, // enable source maps in prod
- webpack(config) {
-    config.devtool = 'source-map'; // emit source maps in development
+  // Disable production source maps to reduce build size and disk usage
+  // Enable only if you need them for debugging production issues
+  productionBrowserSourceMaps: false,
+  /* config options here */
+  webpack(config, { dev, isServer }) {
+    // Explicitly disable source maps in production to reduce build size and disk usage
+    if (!dev) {
+      config.devtool = false;
+    } else if (!isServer) {
+      // Use cheaper source maps in development to reduce cache size
+      // 'eval-cheap-module-source-map' is faster and uses less disk space
+      config.devtool = 'eval-cheap-module-source-map';
+    }
     config.module.rules.push({
       test: /\.svg$/i,
       issuer: /\.[jt]sx?$/,
@@ -28,18 +38,21 @@ const nextConfig: NextConfig = {
 
     return config;
   },
-  experimental: {
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
       },
     },
+  },
+  experimental: {
     serverActions: {
       bodySizeLimit: '50mb' // Increased from 2mb to 50mb
     },
-  }
-}
+    // Optimize memory usage during builds to prevent hangs
+    webpackMemoryOptimizations: true,
+  },
+};
+
   ```
